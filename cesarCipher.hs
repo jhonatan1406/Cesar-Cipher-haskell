@@ -1,35 +1,66 @@
-import Data.Char
+-- Breno Arthur Rotte Fernandes Oliveira - 20.1.8124
+-- Jhonatan Figueiredo Almeida - 20.1.8164
+-- Para rodar o programa, entre no GHCi e digite main
 
--- Função para cifrar um caractere
+module Main where
+
+import Data.Char (chr, ord, isUpper, isLower)
+import System.IO (hFlush, stdout)
+
+-- Função para deslocar uma única letra mantendo maiúsculas e minúsculas
 shiftChar :: Int -> Char -> Char
 shiftChar shift c
-    | isAlpha c = chr $ base + mod (ord c - base + shift) 26
+    | isUpper c = chr (newPos 'A')
+    | isLower c = chr (newPos 'a')
     | otherwise = c
-  where base = if isUpper c then ord 'A' else ord 'a'
+    where
+        newPos base = ((ord c - ord base + shift) `mod` 26) + ord base
 
--- Função para criptografar uma mensagem
+-- Função para criptografar uma string inteira
 encrypt :: Int -> String -> String
 encrypt shift = map (shiftChar shift)
 
--- Função para descriptografar uma mensagem
+-- Função para descriptografar uma string inteira
 decrypt :: Int -> String -> String
 decrypt shift = encrypt (-shift)
 
--- Função principal para interação com o usuário
+-- Função para normalizar texto removendo espaços extras
+normalizeText :: String -> String
+normalizeText = unwords . words  
+
 main :: IO ()
 main = do
-    putStrLn "Escolha uma opção:"
-    putStrLn "1 - Criptografar"
-    putStrLn "2 - Descriptografar"
-    opcao <- getLine
-    putStrLn "Digite a mensagem:"
-    mensagem <- getLine
-    putStrLn "Digite a chave (deslocamento):"
-    chaveStr <- getLine
-    let chave = read chaveStr :: Int
-    let resultado = case opcao of
-                      "1" -> encrypt chave mensagem
-                      "2" -> decrypt chave mensagem
-                      _   -> "Opção inválida!"
-    putStrLn "Resultado:"
-    putStrLn resultado
+    putStrLn "=== Cifra de César ==="
+    loopMenu
+
+loopMenu :: IO ()
+loopMenu = do
+    putStrLn "\nEscolha uma opção:"
+    putStrLn "1 - Criptografar uma mensagem"
+    putStrLn "2 - Descriptografar uma mensagem"
+    putStrLn "3 - Sair"
+    putStr "Opção: "
+    hFlush stdout  -- Força a exibição do prompt antes da entrada do usuário
+    option <- getLine
+    case option of
+        "1" -> process encrypt "Mensagem criptografada:"
+        "2" -> process decrypt "Mensagem descriptografada:"
+        "3" -> putStrLn "Saindo... Obrigado por usar a Cifra de César!"
+        _   -> putStrLn "Opção inválida! Tente novamente." >> loopMenu
+
+process :: (Int -> String -> String) -> String -> IO ()
+process func label = do
+    putStr "Digite a mensagem: "
+    hFlush stdout
+    message <- getLine
+    putStr "Digite a chave (número inteiro): "
+    hFlush stdout
+    keyInput <- getLine
+    case reads keyInput :: [(Int, String)] of
+        [(key, "")] -> do
+            let result = func key (normalizeText message)
+            putStrLn $ label ++ " " ++ result
+            loopMenu
+        _ -> do
+            putStrLn "Chave inválida! Digite um número inteiro."
+            process func label
